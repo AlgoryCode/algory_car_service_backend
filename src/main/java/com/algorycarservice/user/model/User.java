@@ -19,7 +19,7 @@ import org.hibernate.annotations.CreationTimestamp;
 import java.time.Instant;
 import java.util.UUID;
 
-/** A person working at the service; every user is staff, the ones with {@link Role#ADMIN} also manage. */
+/** An account: workshop staff ({@link Role#ADMIN}, {@link Role#STAFF}) or an OtoViser customer or provider. */
 @Entity
 @Table(name = "users")
 @Getter
@@ -35,8 +35,11 @@ public class User {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    /** Business (servis işletmesi) the user works for; created at first setup, inherited by staff accounts. */
-    @Column(nullable = false, updatable = false)
+    /**
+     * Business (servis işletmesi) the user works for or owns: created at first setup and inherited by staff
+     * accounts; for an OtoViser provider it is the listed business's UUID. Customers have none.
+     */
+    @Column(updatable = false)
     private UUID businessUuid;
 
     @Column(nullable = false, unique = true)

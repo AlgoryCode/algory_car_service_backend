@@ -7,6 +7,7 @@ import com.algorycarservice.common.exception.ResourceNotFoundException;
 import com.algorycarservice.user.dto.StaffCreateRequest;
 import com.algorycarservice.user.dto.StaffUpdateRequest;
 import com.algorycarservice.user.dto.UserResponse;
+import com.algorycarservice.user.model.Role;
 import com.algorycarservice.user.model.User;
 import com.algorycarservice.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -30,11 +31,19 @@ public class StaffService {
     private final RefreshTokenService refreshTokenService;
 
     public List<UserResponse> list() {
-        return userRepository.findAllByOrderByActiveDescFullNameAsc().stream().map(UserResponse::from).toList();
+        return userRepository.findAllByRoleInOrderByActiveDescFullNameAsc(Role.WORKSHOP).stream()
+                .map(UserResponse::from).toList();
     }
 
     public UserResponse get(Long id) {
-        return UserResponse.from(getUser(id));
+        return UserResponse.from(getStaff(id));
+    }
+
+    /** A workshop account; OtoViser customers and providers are not staff and stay invisible here. */
+    public User getStaff(Long id) {
+        return userRepository.findById(id)
+                .filter(user -> user.getRole().isWorkshop())
+                .orElseThrow(() -> new ResourceNotFoundException("user"));
     }
 
     public User getUser(Long id) {
@@ -43,6 +52,7 @@ public class StaffService {
 
     @Transactional
     public UserResponse create(Long adminId, StaffCreateRequest request) {
+        requireWorkshopRole(request.role());
         User admin = getUser(adminId);
         String email = normalizeEmail(request.email());
         if (userRepository.existsByEmail(email)) {
@@ -64,7 +74,8 @@ public class StaffService {
     /** An admin cannot demote or deactivate themselves, so the workshop never ends up without an admin. */
     @Transactional
     public UserResponse update(Long actingUserId, Long id, StaffUpdateRequest request) {
-        User user = getUser(id);
+        requireWorkshopRole(request.role());
+        User user = getStaff(id);
         boolean self = user.getId().equals(actingUserId);
         if (self && (request.role() != user.getRole() || !request.active())) {
             throw new ApiException(ErrorCode.CANNOT_CHANGE_OWN_ACCOUNT);
@@ -95,5 +106,11 @@ public class StaffService {
 
     private static String clean(String value) {
         return StringUtils.hasText(value) ? value.trim() : null;
+    }
+
+    private static void requireWorkshopRole(Role role) {
+        if (!role.isWorkshop()) {
+            throw new ApiException(ErrorCode.STAFF_ROLE_INVALID);
+        }
     }
 }

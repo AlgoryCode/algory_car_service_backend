@@ -6,6 +6,9 @@ import com.algorycarservice.auth.dto.LoginRequest;
 import com.algorycarservice.auth.dto.RefreshTokenRequest;
 import com.algorycarservice.auth.dto.RegisterRequest;
 import com.algorycarservice.common.exception.ApiException;
+import com.algorycarservice.market.dto.CustomerRegisterRequest;
+import com.algorycarservice.market.dto.ProviderRegisterRequest;
+import com.algorycarservice.market.service.BusinessService;
 import com.algorycarservice.common.exception.ErrorCode;
 import com.algorycarservice.security.AuthUser;
 import com.algorycarservice.security.JwtService;
@@ -31,10 +34,50 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
     private final RefreshTokenService refreshTokenService;
+    private final BusinessService businessService;
 
-    /** Open sign-up exists only to create the first admin; after that admins add staff accounts. */
+    /**
+     * Open workshop sign-up exists only to create the first admin; after that admins add staff accounts.
+     * OtoViser customers and providers do not count: they sign up on their own at any time.
+     */
     public boolean setupRequired() {
-        return userRepository.count() == 0;
+        return userRepository.countByRoleIn(Role.WORKSHOP) == 0;
+    }
+
+    /** OtoViser customer sign-up. */
+    @Transactional
+    public AuthResponse registerCustomer(CustomerRegisterRequest request) {
+        User user = userRepository.save(User.builder()
+                .email(uniqueEmail(request.email()))
+                .fullName(request.fullName().trim())
+                .phone(request.phone().trim())
+                .passwordHash(passwordEncoder.encode(request.password()))
+                .role(Role.CUSTOMER)
+                .build());
+        return authenticated(user, refreshTokenService.startSession(user));
+    }
+
+    /** OtoViser business sign-up: the owner account and its listed business, sharing one business UUID. */
+    @Transactional
+    public AuthResponse registerProvider(ProviderRegisterRequest request) {
+        User user = userRepository.save(User.builder()
+                .businessUuid(UUID.randomUUID())
+                .email(uniqueEmail(request.email()))
+                .fullName(request.fullName().trim())
+                .phone(request.business().phone().trim())
+                .passwordHash(passwordEncoder.encode(request.password()))
+                .role(Role.PROVIDER)
+                .build());
+        businessService.create(user, request.business());
+        return authenticated(user, refreshTokenService.startSession(user));
+    }
+
+    private String uniqueEmail(String email) {
+        String normalized = StaffService.normalizeEmail(email);
+        if (userRepository.existsByEmail(normalized)) {
+            throw new ApiException(ErrorCode.EMAIL_ALREADY_REGISTERED);
+        }
+        return normalized;
     }
 
     @Transactional

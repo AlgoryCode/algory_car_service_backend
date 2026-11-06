@@ -12,6 +12,7 @@ import com.algorycarservice.common.exception.ApiException;
 import com.algorycarservice.common.exception.ErrorCode;
 import com.algorycarservice.common.exception.ResourceNotFoundException;
 import com.algorycarservice.common.i18n.Messages;
+import com.algorycarservice.common.schedule.SlotCalendar;
 import com.algorycarservice.security.AuthUser;
 import com.algorycarservice.user.service.StaffService;
 import com.algorycarservice.vehicle.model.Vehicle;
@@ -26,11 +27,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
-import java.time.DayOfWeek;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.time.LocalTime;
-import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Set;
@@ -51,6 +49,7 @@ public class AppointmentService {
     private final StaffService staffService;
     private final WorkOrderService workOrderService;
     private final AppProperties properties;
+    private final SlotCalendar slotCalendar;
     private final Messages messages;
 
     public List<AppointmentResponse> list(LocalDate from, LocalDate to, Set<AppointmentStatus> statuses) {
@@ -191,29 +190,20 @@ public class AppointmentService {
         }
     }
 
-    /** Start times from opening until the last slot that still ends by closing time. */
     private List<LocalTime> slotTimes() {
-        AppProperties.Appointments config = properties.appointments();
-        int step = (int) config.slotLength().toMinutes();
-        int close = config.closingTime().toSecondOfDay() / 60;
-        List<LocalTime> times = new ArrayList<>();
-        for (int minute = config.openingTime().toSecondOfDay() / 60; minute + step <= close; minute += step) {
-            times.add(LocalTime.of(minute / 60, minute % 60));
-        }
-        return times;
+        return slotCalendar.slotTimes();
     }
 
-    /** Same week as the leave rules: the workshop works Monday to Saturday. */
-    private static boolean isClosed(LocalDate date) {
-        return date.getDayOfWeek() == DayOfWeek.SUNDAY;
+    private boolean isClosed(LocalDate date) {
+        return slotCalendar.isClosed(date);
     }
 
     private boolean isUpcoming(LocalDate date, LocalTime time) {
-        return LocalDateTime.of(date, time).isAfter(LocalDateTime.now(properties.timeZone()));
+        return slotCalendar.isUpcoming(date, time);
     }
 
     private LocalDate today() {
-        return LocalDate.now(properties.timeZone());
+        return slotCalendar.today();
     }
 
     private static void requireActive(Appointment appointment) {

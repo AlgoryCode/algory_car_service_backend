@@ -7,6 +7,8 @@ import com.algorycarservice.auth.dto.RefreshTokenRequest;
 import com.algorycarservice.auth.dto.RegisterRequest;
 import com.algorycarservice.auth.dto.SetupStatusResponse;
 import com.algorycarservice.auth.service.AuthService;
+import com.algorycarservice.market.dto.CustomerRegisterRequest;
+import com.algorycarservice.market.dto.ProviderRegisterRequest;
 import com.algorycarservice.security.AuthUser;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -36,6 +38,18 @@ public class AuthController {
     @ResponseStatus(HttpStatus.CREATED)
     public AuthResponse register(@Valid @RequestBody RegisterRequest request) {
         return authService.register(request);
+    }
+
+    @PostMapping("/register/customer")
+    @ResponseStatus(HttpStatus.CREATED)
+    public AuthResponse registerCustomer(@Valid @RequestBody CustomerRegisterRequest request) {
+        return authService.registerCustomer(request);
+    }
+
+    @PostMapping("/register/provider")
+    @ResponseStatus(HttpStatus.CREATED)
+    public AuthResponse registerProvider(@Valid @RequestBody ProviderRegisterRequest request) {
+        return authService.registerProvider(request);
     }
 
     @PostMapping("/login")
