@@ -1,0 +1,6 @@
+# Zero-setup profile: file based H2 running in PostgreSQL compatibility mode.
+spring:
+  datasource:
+    url: jdbc:h2:file:./data/algorycarservice;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DEFAULT_NULL_ORDERING=HIGH
+    username: sa
+    password:

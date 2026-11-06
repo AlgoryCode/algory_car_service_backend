@@ -1,0 +1,51 @@
+spring:
+  application:
+    name: algorycarservice
+  config:
+    # Local secrets such as the storage keys; in production the same names come from the environment.
+    import: optional:file:.env[.properties]
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://185.184.210.52:5433/algorycarservicedb_stage}
+    username: ${DB_USERNAME:postgres}
+    password: ${DB_PASSWORD:postgres_stage}
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+  messages:
+    basename: messages
+    fallback-to-system-locale: false
+  servlet:
+    multipart:
+      # Photos are shrunk on the phone; this only stops oversized uploads before they reach the code.
+      max-file-size: 6MB
+      max-request-size: 6MB
+  web:
+    locale: tr
+    locale-resolver: accept-header
+
+server:
+  port: ${PORT:8080}
+  forward-headers-strategy: native
+
+app:
+  time-zone: ${APP_TIME_ZONE:Europe/Istanbul}
+  appointments:
+    opening-time: ${APPOINTMENT_OPENING_TIME:09:00}
+    closing-time: ${APPOINTMENT_CLOSING_TIME:18:00}
+    slot-length: ${APPOINTMENT_SLOT_LENGTH:30m}
+    slot-capacity: ${APPOINTMENT_SLOT_CAPACITY:2}
+  jwt:
+    # Development key only. Override with JWT_SECRET (base64, at least 256 bits) in every real environment.
+    secret: ${JWT_SECRET:3q6m1mJ0mT9kz7m2yq0XWm8w4b0V3n6R1a5s9d2f7g4h8j1k5l9z3x6c0v2b7n4m}
+    access-token-ttl: 15m
+    refresh-token-ttl: 30d
+  storage:
+    type: ${STORAGE_TYPE:seaweed}
+    # Same SeaweedFS as qr-service (its docker-compose.seaweedfs.yml exposes the Filer on 8888), own bucket.
+    filer-url: ${STORAGE_FILER_URL:http://localhost:8888}
+    s3-endpoint: ${STORAGE_S3_ENDPOINT:}
+    access-key: ${STORAGE_ACCESS_KEY:}
+    secret-key: ${STORAGE_SECRET_KEY:}
+    bucket: ${STORAGE_BUCKET:car-service-photos}
+    max-file-size-bytes: ${STORAGE_MAX_FILE_SIZE_BYTES:5242880}

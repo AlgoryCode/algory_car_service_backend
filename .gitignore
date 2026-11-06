@@ -1,0 +1,14 @@
+# Build output
+target/
+
+# Local secrets and databases
+.env
+data/
+*.mv.db
+*.trace.db
+
+# IDE
+.idea/
+*.iml
+.vscode/
+.DS_Store
